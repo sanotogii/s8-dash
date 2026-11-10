@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>S8 · proot dashboard</title>
+<style>
+:root{
+  --bg1:#0b1020;--bg2:#141a35;--card:rgba(255,255,255,.055);--line:rgba(255,255,255,.09);
+  --text:#e8ecff;--mute:#8b94b8;--green:#34d399;--blue:#60a5fa;--purple:#a78bfa;
+  --orange:#fbbf24;--red:#f87171;--pink:#f472b6;
+}
+@media (prefers-color-scheme: light){
+  :root{--bg1:#eef1fb;--bg2:#dfe5f8;--card:rgba(255,255,255,.75);--line:rgba(20,30,70,.1);--text:#161c3a;--mute:#5d6690}
+}
+*{box-sizing:border-box;margin:0}
+body{font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text);
+  background:radial-gradient(1200px 700px at 10% -10%,#3b2f8f55,transparent),
+             radial-gradient(900px 600px at 100% 0,#0ea5e944,transparent),
+             linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;
+  padding:max(18px,env(safe-area-inset-top)) 16px 40px}
+.wrap{max-width:1180px;margin:auto}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:20px}
+h1{font-size:22px;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+h1 small{font-weight:500;color:var(--mute);font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;
+  background:var(--card);border:1px solid var(--line);font-size:13px;color:var(--mute)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--red)}
+.dot.ok{background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.4}}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);position:relative;overflow:hidden}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:var(--mute);font-weight:600;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:16px}
+.ring{position:relative;width:104px;height:104px;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:9;stroke-linecap:round}
+.ring .bg{stroke:var(--line)}
+.ring .fg{stroke-dasharray:289;stroke-dashoffset:289;transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1),stroke .4s}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:24px;font-weight:700}
+.ring b i{font-style:normal;font-size:12px;color:var(--mute);margin-left:1px;align-self:center}
+.batt{position:relative;width:112px;height:58px;flex:none}
+.batt .body{position:absolute;left:0;top:0;bottom:0;right:10px;border:3px solid var(--mute);border-radius:14px;padding:4px}
+.batt .nub{position:absolute;right:0;top:19px;width:9px;height:20px;border-radius:0 6px 6px 0;background:var(--mute)}
+.batt .fill{height:100%;width:0;min-width:6px;border-radius:8px;background:var(--green);transition:width .8s cubic-bezier(.2,.8,.2,1),background .4s}
+.batt b{position:absolute;left:0;top:0;bottom:0;right:10px;display:grid;place-items:center;font-size:19px;font-weight:800;
+  color:var(--text);text-shadow:0 0 6px var(--bg1),0 0 3px var(--bg1)}
+.batt.charging .fill{background-image:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);
+  background-size:200% 100%;animation:shine 1.8s linear infinite}
+.batt.low .body{animation:pulse 1.2s infinite;border-color:var(--red)}
+@keyframes shine{from{background-position:200% 0}to{background-position:-100% 0}}
+.kv{display:grid;gap:5px;font-size:13px;flex:1;min-width:0}
+.kv div{display:flex;justify-content:space-between;gap:8px}
+.kv span{color:var(--mute)}
+.kv em{font-style:normal;font-weight:600;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spark{width:100%;height:42px;margin-top:12px;display:block}
+.big{font-size:30px;font-weight:700;letter-spacing:-.5px}
+.bar{height:8px;border-radius:9px;background:var(--line);margin:10px 0 8px;overflow:hidden}
+.bar>i{display:block;height:100%;width:0;border-radius:9px;transition:width .8s,background .4s}
+.sub{font-size:12px;color:var(--mute)}
+.zones{display:grid;gap:7px;margin-top:12px;font-size:12px}
+.zone{display:grid;grid-template-columns:90px 1fr 44px;gap:8px;align-items:center}
+.zone .bar{margin:0;height:5px}
+.zone span{color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zone b{text-align:right}
+section{margin-top:22px}
+section>h3{font-size:15px;margin:0 2px 10px;display:flex;align-items:center;gap:10px}
+section>h3 .count{font-size:12px;color:var(--mute);background:var(--card);border:1px solid var(--line);
+  padding:2px 9px;border-radius:99px;font-weight:500}
+.split{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--mute);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:0 10px 8px}
+td{padding:9px 10px;border-top:1px solid var(--line);white-space:nowrap}
+tr:hover td{background:rgba(127,127,200,.07)}
+.port{font:700 14px ui-monospace,Menlo,monospace;color:var(--blue)}
+.tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
+.tag.tcp{background:#60a5fa26;color:var(--blue)}
+.tag.udp{background:#a78bfa26;color:var(--purple)}
+.tag.pub{background:#fbbf2426;color:var(--orange)}
+.tag.loc{background:#34d39926;color:var(--green)}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--mute);max-width:260px;overflow:hidden;text-overflow:ellipsis}
+.svc{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
+.svc:first-child{border-top:0}
+.ico{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:17px;flex:none;
+  background:linear-gradient(135deg,#60a5fa44,#a78bfa44)}
+.svc .nm{font-weight:600;font-size:14px}
+.svc .meta{flex:1;min-width:0}
+.svc .cm{font:11px ui-monospace,Menlo,monospace;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.svc .ms{text-align:right;font-size:13px;font-weight:600}
+.svc .ms small{display:block;color:var(--mute);font-weight:400;font-size:11px}
+.apps{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.app{display:flex;gap:12px;align-items:center;padding:14px;border-radius:16px;background:var(--card);
+  border:1px solid var(--line);position:relative}
+.app.on{border-color:#34d39966;box-shadow:0 0 22px #34d39922 inset}
+.app .ico{width:42px;height:42px;font-size:20px}
+.app .nm{font-weight:700;font-size:14px}
+.app .st{font-size:12px;color:var(--green);display:flex;align-items:center;gap:6px}
+.app .st i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.app .mt{font-size:11px;color:var(--mute);margin-top:2px}
+.offline{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.offline span{font-size:12px;color:var(--mute);padding:4px 11px;border-radius:99px;border:1px dashed var(--line)}
+.empty{color:var(--mute);padding:14px 4px;font-size:13px}
+.err{display:none;margin-bottom:14px;padding:12px 16px;border-radius:14px;background:#f8717122;
+  border:1px solid #f8717166;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📱 <span id="host">S8</span> <small>proot · Ubuntu</small></h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="pill" id="ip">—</span>
+      <span class="pill">⏱ <b id="up" style="color:var(--text)">—</b></span>
+      <span class="pill"><i class="dot" id="live"></i><span id="lt">connecting</span></span>
+    </div>
+  </header>
+
+  <div class="err" id="err">Can't reach <code>/api/stats</code>. Make sure <code>python3 server.py</code> is running and open this page through it (e.g. <code>http://localhost:8080</code>).</div>
+
+  <div class="grid">
+    <div class="card"><h2>🔋 Battery <span id="bst">—</span></h2>
+      <div class="row">
+        <div class="batt" id="batt"><div class="body"><div class="fill" id="bfill"></div></div><div class="nub"></div><b id="v-bat">—</b></div>
+        <div class="kv">
+          <div><span>Voltage</span><em id="b-v">—</em></div>
+          <div><span>Current</span><em id="b-c">—</em></div>
+          <div><span>Temp</span><em id="b-t">—</em></div>
+          <div><span>Health</span><em id="b-h">—</em></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card"><h2>⚙️ CPU <span id="c-cores">—</span></h2>
+      <div class="row">
+        <div class="ring"><svg viewBox="0 0 104 104"><circle class="bg" cx="52" cy="52" r="46"/><circle class="fg" id="r-cpu" cx="52" cy="52" r="46"/></svg><b><span id="v-cpu">—</span><i>%</i></b></div>
+        <div class="kv">
+          <div><span>Load 1m</span><em id="l1">—</em></div>
+          <div><span>Load 5m</span><em id="l5">—</em></div>
+          <div><span>Load 15m</span><em id="l15">—</em></div>
+          <div><span>Processes</span><em id="pc">—</em></div>
+        </div>
+      </div>
+      <svg class="spark" id="s-cpu" viewBox="0 0 100 30" preserveAspectRatio="none"></svg>
+    </div>
+
+    <div class="card"><h2>🧠 Memory <span id="m-pct">—</span></h2>
+      <div class="big" id="m-used">—</div>
+      <div class="sub" id="m-tot">—</div>
+      <div class="bar"><i id="m-bar"></i></div>
+      <div class="sub" id="m-swap">Swap —</div>
+      <svg class="spark" id="s-mem" viewBox="0 0 100 30" preserveAspectRatio="none"></svg>
+    </div>
+
+    <div class="card"><h2>🌡 Temperature <span id="t-max">—</span></h2>
+      <div class="big" id="t-main">—</div>
+      <div class="sub">hottest sensor</div>
+      <svg class="spark" id="s-tmp" viewBox="0 0 100 30" preserveAspectRatio="none"></svg>
+      <div class="zones" id="zones"></div>
+    </div>
+
+    <div class="card"><h2>💾 Storage <span id="d-pct">—</span></h2>
+      <div class="big" id="d-used">—</div>
+      <div class="sub" id="d-tot">—</div>
+      <div class="bar"><i id="d-bar"></i></div>
+      <div class="sub">root filesystem of the proot</div>
+    </div>
+
+    <div class="card"><h2>🌐 Network <span>since boot ↓ ↑</span></h2>
+      <div class="kv" style="gap:10px">
+        <div><span>↓ Download</span><em class="big" style="font-size:22px;color:var(--green)" id="n-rx">—</em></div>
+        <div><span>↑ Upload</span><em class="big" style="font-size:22px;color:var(--blue)" id="n-tx">—</em></div>
+        <div class="sub" style="display:block" id="n-tot">—</div>
+      </div>
+      <svg class="spark" id="s-net" viewBox="0 0 100 30" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <section>
+    <h3>🚀 Apps <span class="count" id="acount">0 running</span></h3>
+    <div class="apps" id="apps"></div>
+    <a href="#" id="apptoggle" style="display:none;font-size:12px;color:var(--mute);margin:10px 2px 0;text-decoration:none"></a>
+    <div class="offline" id="appsoff" style="display:none"></div>
+  </section>
+
+  <div class="split">
+    <section>
+      <h3>🔌 Open ports <span class="count" id="pcount">0</span></h3>
+      <div class="card scroll">
+        <table><thead><tr><th>Port</th><th>Proto</th><th>Bind</th><th>Process</th></tr></thead><tbody id="ports"></tbody></table>
+      </div>
+    </section>
+    <section>
+      <h3>🧩 Running services <span class="count" id="scount">0</span></h3>
+      <div class="card" id="svcs"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const C = {green:"#34d399", blue:"#60a5fa", purple:"#a78bfa", orange:"#fbbf24", red:"#f87171", pink:"#f472b6"};
+const REFRESH = 2000, HIST = 60;
+const hist = {cpu:[], mem:[], tmp:[], rx:[], tx:[]};
+let lastNet = null, showOff = false;
+
+const fmtB = (n, d=1) => { if (n == null) return "—"; const u=["B","KB","MB","GB","TB"]; let i=0;
+  while (n >= 1024 && i < 4) { n /= 1024; i++; } return n.toFixed(i ? d : 0) + " " + u[i]; };
+const fmtUp = s => { s = Math.floor(s); const d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60);
+  return (d ? d+"d " : "") + h+"h " + m+"m"; };
+const colorFor = (p, inv=false) => { if (inv) p = 100 - p; return p < 60 ? C.green : p < 85 ? C.orange : C.red; };
+const tempColor = t => t < 38 ? C.green : t < 45 ? C.orange : C.red;
+
+function ring(id, pct, color){
+  const el = $(id); pct = Math.max(0, Math.min(100, pct || 0));
+  el.style.strokeDashoffset = 289 * (1 - pct/100); el.style.stroke = color;
+}
+function push(k, v){ hist[k].push(v ?? 0); if (hist[k].length > HIST) hist[k].shift(); }
+function spark(id, series, color, max){
+  const el = $(id); const all = series.flat(); if (all.length < 2) return;
+  const top = max || Math.max(...all, 1) * 1.15;
+  const mk = (arr, col, fill) => {
+    const pts = arr.map((v,i) => [i/(HIST-1)*100, 28 - (v/top)*26]);
+    const off = (HIST - arr.length)/(HIST-1)*100;
+    const d = pts.map((p,i) => (i?"L":"M") + (p[0]).toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+    return (fill ? `<path d="${d} L${pts[pts.length-1][0]} 30 L0 30Z" fill="${col}" opacity=".15"/>` : "") +
+      `<path d="${d}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
+  };
+  // right-align: pad on the left
+  const pad = a => Array(HIST - a.length).fill(null).concat(a);
+  el.innerHTML = series.map((s,i) => {
+    const full = pad(s), pts = [];
+    full.forEach((v,j) => { if (v != null) pts.push([j/(HIST-1)*100, 28 - (v/top)*26]); });
+    const d = pts.map((p,j) => (j?"L":"M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+    const col = Array.isArray(color) ? color[i] : color;
+    return (i===0 ? `<path d="${d} L100 30 L${pts[0][0]} 30Z" fill="${col}" opacity=".15"/>` : "") +
+      `<path d="${d}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
+  }).join("");
+}
+
+const ICONS = [
+  [/ssh/i,"🔐"],[/nginx|apache|httpd|caddy|lighttpd/i,"🌍"],[/node|npm|deno|bun/i,"🟩"],
+  [/python|flask|django|uvicorn|gunicorn/i,"🐍"],[/mysql|maria|postgres|mongo|redis|sqlite/i,"🗄"],
+  [/vnc|xvnc|x11|xfce|novnc/i,"🖥"],[/code|jupyter/i,"💻"],[/cron/i,"⏰"],[/dbus|systemd/i,"🧷"],
+  [/bash|zsh|sh$|fish|tmux|screen/i,"⌨️"],[/proot/i,"📦"],[/docker|podman/i,"🐳"],[/ftp|samba|smb/i,"📂"]
+];
+const iconFor = n => (ICONS.find(([r]) => r.test(n)) || [0,"⚡"])[1];
+
+async function tick(){
+  let d;
+  try {
+    const r = await fetch("/api/stats", {cache:"no-store"});
+    d = await r.json();
+  } catch(e){
+    $("err").style.display = "block"; $("live").className = "dot"; $("lt").textContent = "offline"; return;
+  }
+  $("err").style.display = "none"; $("live").className = "dot ok"; $("lt").textContent = "live";
+  $("host").textContent = new URLSearchParams(location.search).get("name") || "S8"; $("ip").textContent = d.ips.length ? d.ips.join(" · ") : "no network";
+  $("up").textContent = fmtUp(d.uptime);
+
+  // Battery (server first, browser API fallback)
+  let b = d.battery;
+  if (!b && window._bat) b = window._bat;
+  if (b){
+    const st = b.status || "Unknown", chg = /charg/i.test(st) && !/dis/i.test(st);
+    const pc = Math.round(b.percent);
+    $("v-bat").textContent = (chg ? "⚡ " : "") + pc + "%";
+    $("bfill").style.width = pc + "%";
+    $("bfill").style.backgroundColor = colorFor(pc, true);
+    $("batt").classList.toggle("charging", chg);
+    $("batt").classList.toggle("low", pc <= 15 && !chg);
+    $("bst").textContent = (chg ? "⚡ " : "") + st;
+    $("b-v").textContent = b.voltage ? b.voltage.toFixed(2) + " V" : "—";
+    $("b-c").textContent = b.current_ma != null ? Math.round(b.current_ma) + " mA" : "—";
+    $("b-t").textContent = b.temp != null ? b.temp.toFixed(1) + " °C" : "—";
+    $("b-h").textContent = b.health || "—";
+  } else { $("bst").textContent = "unavailable"; }
+
+  // CPU
+  const cpu = d.cpu.percent ?? Math.min(100, d.cpu.load[0] / d.cpu.cores * 100);
+  $("v-cpu").textContent = Math.round(cpu); ring("r-cpu", cpu, colorFor(cpu));
+  $("c-cores").textContent = d.cpu.cores + " cores";
+  $("l1").textContent = d.cpu.load[0]; $("l5").textContent = d.cpu.load[1]; $("l15").textContent = d.cpu.load[2];
+  $("pc").textContent = d.proc_count;
+  push("cpu", cpu); spark("s-cpu", [hist.cpu], C.blue, 100);
+
+  // Memory
+  const m = d.mem, mp = m.total ? m.used / m.total * 100 : 0;
+  $("m-used").textContent = fmtB(m.used, 2); $("m-tot").textContent = "of " + fmtB(m.total, 2) + " · " + fmtB(m.available) + " free";
+  $("m-pct").textContent = mp.toFixed(0) + "%";
+  $("m-bar").style.width = mp + "%"; $("m-bar").style.background = colorFor(mp);
+  $("m-swap").textContent = m.swap_total ? "Swap " + fmtB(m.swap_used) + " / " + fmtB(m.swap_total) : "Swap not in use";
+  push("mem", mp); spark("s-mem", [hist.mem], C.purple, 100);
+
+  // Temperature
+  const temps = [...d.thermal];
+  if (d.battery && d.battery.temp != null) temps.unshift({name:"battery", temp:d.battery.temp});
+  else if (b && b.temp != null) temps.unshift({name:"battery", temp:b.temp});
+  if (temps.length){
+    const mx = Math.max(...temps.map(t => t.temp));
+    $("t-main").textContent = mx.toFixed(1) + " °C"; $("t-main").style.color = tempColor(mx);
+    $("t-max").textContent = temps.length + " sensors";
+    push("tmp", mx); spark("s-tmp", [hist.tmp], tempColor(mx), Math.max(60, mx + 5));
+    $("zones").innerHTML = temps.slice(0, 6).map(t =>
+      `<div class="zone"><span>${esc(t.name)}</span><div class="bar"><i style="width:${Math.min(100,t.temp/80*100)}%;background:${tempColor(t.temp)}"></i></div><b>${t.temp.toFixed(0)}°</b></div>`).join("");
+  } else { $("t-main").textContent = "n/a"; $("t-max").textContent = "no sensors readable"; }
+
+  // Disk
+  const dp = d.disk.used / d.disk.total * 100;
+  $("d-used").textContent = fmtB(d.disk.used, 1); $("d-tot").textContent = "of " + fmtB(d.disk.total, 1);
+  $("d-pct").textContent = dp.toFixed(0) + "%"; $("d-bar").style.width = dp + "%"; $("d-bar").style.background = colorFor(dp);
+
+  // Network rates
+  if (lastNet){
+    const dt = (d.time - lastNet.time) || 1;
+    const rx = Math.max(0, (d.net.rx - lastNet.rx) / dt), tx = Math.max(0, (d.net.tx - lastNet.tx) / dt);
+    $("n-rx").textContent = fmtB(rx) + "/s"; $("n-tx").textContent = fmtB(tx) + "/s";
+    push("rx", rx); push("tx", tx); spark("s-net", [hist.rx, hist.tx], [C.green, C.blue]);
+  }
+  $("n-tot").textContent = "Total ↓ " + fmtB(d.net.rx) + "  ·  ↑ " + fmtB(d.net.tx);
+  lastNet = {time: d.time, ...d.net};
+
+  // Apps
+  const on = (d.apps || []).filter(a => a.running), off = (d.apps || []).filter(a => !a.running);
+  $("acount").textContent = on.length + " running";
+  $("apps").innerHTML = on.length ? on.map(a =>
+    `<div class="app on"><div class="ico">${a.icon}</div><div style="min-width:0">
+      <div class="nm">${esc(a.name)}</div>
+      <div class="st"><i></i>running</div>
+      <div class="mt">${a.ports.length ? "port " + a.ports.slice(0,4).join(", ") + " · " : ""}${a.rss ? fmtB(a.rss) : ""}${a.pids.length ? " · PID " + a.pids[0] : ""}</div>
+    </div></div>`).join("") : `<div class="empty">No known apps detected yet.</div>`;
+  $("appsoff").innerHTML = off.map(a => `<span>${a.icon} ${esc(a.name)}</span>`).join("");
+  const tg = $("apptoggle");
+  tg.style.display = off.length ? "inline-block" : "none";
+  $("appsoff").style.display = showOff && off.length ? "flex" : "none";
+  tg.textContent = (showOff ? "▾ hide " : "▸ show ") + off.length + " not running";
+  tg.onclick = e => { e.preventDefault(); showOff = !showOff; tick(); };
+
+  // Ports
+  $("pcount").textContent = d.ports.length;
+  $("ports").innerHTML = d.ports.length ? d.ports.map(p =>
+    `<tr><td class="port">${p.port}</td><td><span class="tag ${p.proto.startsWith("tcp") ? "tcp" : "udp"}">${p.proto.toUpperCase()}</span></td>
+     <td><span class="tag ${p.public ? "pub" : "loc"}">${p.public ? "public" : "local"}</span> <span class="mono">${esc(p.addr)}</span></td>
+     <td>${p.process ? esc(p.process) + ' <span class="mono">#' + p.pid + '</span>' : '<span class="mono">—</span>'}</td></tr>`).join("")
+    : `<tr><td colspan="4" class="empty">No listening sockets found.</td></tr>`;
+
+  // Services / processes
+  const procs = d.procs.filter(p => p.listening).concat(d.procs.filter(p => !p.listening)).slice(0, 12);
+  $("scount").textContent = d.proc_count + " procs";
+  $("svcs").innerHTML = procs.map(p => {
+    const lp = d.ports.filter(x => x.pid === p.pid).map(x => x.port);
+    return `<div class="svc"><div class="ico">${iconFor(p.name)}</div>
+      <div class="meta"><div class="nm">${esc(p.name)} ${p.listening ? '<span class="tag loc">listening ' + [...new Set(lp)].slice(0,3).join(", ") + '</span>' : ''}</div>
+      <div class="cm" title="${esc(p.cmd)}">${esc(p.cmd)}</div></div>
+      <div class="ms">${fmtB(p.rss)}<small>PID ${p.pid} · ${esc(p.user)}</small></div></div>`;
+  }).join("");
+}
+
+// Browser Battery API fallback (only used if the server can't read battery sysfs)
+if (navigator.getBattery) navigator.getBattery().then(b => {
+  const up = () => window._bat = {percent:b.level*100, status:b.charging ? "Charging" : "Discharging",
+    voltage:null, current_ma:null, temp:null, health:null};
+  up(); ["levelchange","chargingchange"].forEach(e => b.addEventListener(e, up));
+}).catch(()=>{});
+
+tick(); setInterval(tick, REFRESH);
+</script>
+</body>
+</html>
